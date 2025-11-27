@@ -2,3 +2,4 @@ Flask>=2.2
 PyJWT>=2.6
 gunicorn
 Werkzeug
+flask-cors
