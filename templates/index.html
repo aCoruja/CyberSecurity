@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Auth Server - Enviar auth request</title>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<main class="card">
+<h1>Auth Server</h1>
+<p>Simule um cliente enviando clientID e clientSecret via POST.</p>
+<form action="/auth-request" method="post" class="form">
+<label>clientID<input name="clientID" value="example-client-1"></label>
+<label>clientSecret<input name="clientSecret" value="secret123"></label>
+<button type="submit">Enviar</button>
+</form>
+<p class="muted">Em produção, esse POST será feito pelo seu app (backend) via HTTPS.</p>
+</main>
+</body>
+</html>
