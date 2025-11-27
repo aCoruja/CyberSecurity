@@ -1,21 +1,555 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Auth Server - Enviar auth request</title>
-<link rel="stylesheet" href="/static/style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Auth & Store — Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0b1220; --card:#071025; --accent:#6ee7b7; --accent-2:#60a5fa;
+      --muted:#9fb8d9; --glass: rgba(255,255,255,0.03);
+      --danger:#ff6b6b;
+    }
+    *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{margin:0;background:linear-gradient(180deg,#030618 0%, #071025 60%);color:#e9f2ff;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:28px;}
+    .app{width:100%;max-width:1100px}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo .mark{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent-2),var(--accent));display:flex;align-items:center;justify-content:center;font-weight:800;color:#022;box-shadow:0 6px 20px rgba(2,6,23,0.6)}
+    h1{margin:0;font-size:18px;font-weight:700}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    .layout{display:grid;grid-template-columns:360px 1fr;gap:18px}
+    /* left */
+    .panel{background:var(--card);border-radius:12px;padding:16px;box-shadow: 0 8px 28px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+    .section-title{font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:600}
+    label{display:block;font-size:13px;color:#bfe6ff;margin-bottom:6px}
+    input[type="text"], input[type="password"], input[type="email"]{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:var(--glass);color:inherit}
+    button{background:linear-gradient(90deg,var(--accent-2),var(--accent));border:none;padding:10px 12px;border-radius:10px;color:#04263b;font-weight:700;cursor:pointer}
+    .muted{color:var(--muted);font-size:13px}
+    .small{font-size:12px;color:var(--muted)}
+    .spaced{display:flex;gap:8px;margin-top:8px}
+    .status{margin-top:10px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.01);font-size:13px}
+    .danger{background:rgba(255,107,107,0.08);color:var(--danger);padding:8px;border-radius:8px}
+    .ok{background:rgba(110,231,183,0.07);color:#c7f6e6;padding:8px;border-radius:8px}
+    /* right */
+    .top-controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px}
+    .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+    .product{background:linear-gradient(180deg, rgba(255,255,255,0.017), rgba(0,0,0,0.06));padding:12px;border-radius:12px;display:flex;flex-direction:column;gap:8px}
+    .product img{width:100%;height:140px;object-fit:cover;border-radius:8px;background:#051326}
+    .product h3{margin:0;font-size:15px}
+    .price{font-weight:700;color:var(--accent-2)}
+    .row{display:flex;gap:8px;align-items:center}
+    .cart-indicator{background:rgba(96,165,250,0.12);padding:6px 10px;border-radius:999px;color:var(--accent-2);font-weight:700}
+    .footer-note{margin-top:12px;color:var(--muted);font-size:13px}
+    /* modal */
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(0,0,0,0.45),rgba(0,0,0,0.6));z-index:9999}
+    .modal.active{display:flex}
+    .modal .box{width:520px;max-width:94%;background:var(--card);padding:18px;border-radius:12px}
+    .flex-between{display:flex;justify-content:space-between;align-items:center}
+    .tiny{font-size:12px;color:var(--muted)}
+    .linklike{background:none;border:0;color:var(--accent-2);cursor:pointer;font-weight:700}
+    /* responsive */
+    @media (max-width:900px){.layout{grid-template-columns:1fr;}.panel{order:2}}
+  </style>
 </head>
 <body>
-<main class="card">
-<h1>Auth Server</h1>
-<p>Simule um cliente enviando clientID e clientSecret via POST.</p>
-<form action="/auth-request" method="post" class="form">
-<label>clientID<input name="clientID" value="example-client-1"></label>
-<label>clientSecret<input name="clientSecret" value="secret123"></label>
-<button type="submit">Enviar</button>
-</form>
-<p class="muted">Em produção, esse POST será feito pelo seu app (backend) via HTTPS.</p>
-</main>
+  <div class="app">
+    <header>
+      <div class="logo">
+        <div class="mark">AS</div>
+        <div>
+          <h1>Auth & Store — Demo</h1>
+          <p class="lead">Teste sua API. Se aparecer <strong>Method Not Allowed</strong>, a página explica o motivo.</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- LEFT: Controls -->
+      <div class="panel">
+        <div>
+          <div class="section-title">Configuração</div>
+          <label>API Base (ajuste para Render)</label>
+          <input id="apiBase" type="text" placeholder="https://seu-app.onrender.com" />
+          <div class="spaced" style="margin-top:10px">
+            <button id="btnSaveBase">Salvar Base</button>
+            <button id="btnPing" class="linklike" style="padding:8px">Ping API</button>
+          </div>
+          <div id="pingStatus" class="status small" style="margin-top:8px">Sem conexão testada</div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0">
+
+        <div>
+          <div class="section-title">1 — Validar aplicação (clientID)</div>
+          <label>clientID</label>
+          <input id="clientID" type="text" value="example-client-1" />
+          <label style="margin-top:8px">clientSecret</label>
+          <input id="clientSecret" type="text" value="secret123" />
+          <div class="spaced">
+            <button id="btnAuthApp">Validar App</button>
+            <button id="btnClearSession" class="linklike">Limpar Sessão</button>
+          </div>
+          <div id="authMsg" class="status tiny" style="margin-top:8px">Aguardando validação</div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0">
+
+        <div>
+          <div class="section-title">2 — Registrar usuário</div>
+          <label>username</label>
+          <input id="regUser" type="text" />
+          <label>email</label>
+          <input id="regEmail" type="email" />
+          <label>senha</label>
+          <input id="regPass" type="password" />
+          <div class="spaced" style="margin-top:8px">
+            <button id="btnRegister">Criar Conta</button>
+            <button id="btnFillDemo" class="linklike">Demo rápido</button>
+          </div>
+          <div id="regMsg" class="status tiny" style="margin-top:8px">—</div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0">
+
+        <div>
+          <div class="section-title">3 — Login</div>
+          <label>username</label>
+          <input id="loginUser" type="text" />
+          <label>senha</label>
+          <input id="loginPass" type="password" />
+          <div class="spaced" style="margin-top:8px">
+            <button id="btnLogin">Entrar</button>
+            <button id="btnLogout" class="linklike">Sair</button>
+          </div>
+          <div id="loginMsg" class="status tiny" style="margin-top:8px">Não autenticado</div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0">
+
+        <div>
+          <div class="section-title">Sessão</div>
+          <div class="row" style="gap:8px">
+            <div class="small">JWT:</div>
+            <div id="jwtShort" class="tiny" style="flex:1;word-break:break-all"></div>
+          </div>
+          <div class="spaced" style="margin-top:8px">
+            <button id="btnCopyJwt" class="linklike">Copiar JWT</button>
+            <button id="btnShowJwt" class="linklike">Mostrar token</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Products / Cart -->
+      <div>
+        <div class="top-controls">
+          <div class="row">
+            <div class="muted">Produtos</div>
+            <div style="width:12px"></div>
+            <div id="cart-count" class="cart-indicator">0</div>
+          </div>
+
+          <div class="row">
+            <button id="btnReloadProducts" class="linklike">Recarregar</button>
+            <button id="btnOpenCart" class="linklike">Ver Carrinho</button>
+          </div>
+        </div>
+
+        <div id="productGrid" class="card-grid"></div>
+
+        <div class="footer-note">
+          Se você receber <strong>Method Not Allowed</strong> ao chamar uma rota, verifique:
+          <ul style="margin:6px 0 0 18px;color:var(--muted)">
+            <li>/auth, /login, /register devem aceitar <code>POST</code></li>
+            <li>/products deve aceitar <code>GET</code></li>
+            <li>/cart deve aceitar GET, POST, PUT, DELETE com <code>Authorization: Bearer &lt;token&gt;</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CART / CHECKOUT MODAL -->
+  <div id="modal" class="modal">
+    <div class="box">
+      <div class="flex-between">
+        <h3 style="margin:0">Carrinho</h3>
+        <div>
+          <button id="btnCheckout" class="linklike">Finalizar</button>
+          <button id="btnCloseModal" class="linklike">Fechar</button>
+        </div>
+      </div>
+      <div id="cart-list" style="margin-top:12px"></div>
+      <div id="cart-msg" class="status tiny" style="margin-top:10px">—</div>
+    </div>
+  </div>
+
+<script>
+/* ========= CONFIG ========= */
+const STORAGE_KEY = "demo_jwt_v1";
+const API_BASE_KEY = "demo_api_base_v1";
+
+/* Ajuste aqui se quiser (padrão localhost) */
+let API_BASE = localStorage.getItem(API_BASE_KEY) || "http://localhost:5000";
+
+/* runtime */
+let CLIENT_ID = null;
+let JWT = localStorage.getItem(STORAGE_KEY) || null;
+
+/* DOM */
+const $ = id => document.getElementById(id);
+
+/* helpers */
+function jsonHeaders() {
+  return { "Content-Type": "application/json" };
+}
+function authHeaders() {
+  if (!JWT) return jsonHeaders();
+  return { "Content-Type": "application/json", "Authorization": "Bearer " + JWT };
+}
+function showToast(msg, color="default") {
+  const t = document.createElement("div");
+  t.innerText = msg;
+  Object.assign(t.style, {
+    position: "fixed", right: "18px", bottom: "18px",
+    background: "rgba(2,6,23,0.85)", color: "#e6f6ff", padding: "10px 14px",
+    borderRadius: "10px", zIndex: 99999, boxShadow: "0 8px 30px rgba(0,0,0,0.6)"
+  });
+  if (color === "error") t.style.background = "rgba(255,107,107,0.9)";
+  if (color === "ok") t.style.background = "linear-gradient(90deg,#60a5fa,#6ee7b7)";
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+/* HTTP wrapper with Method Not Allowed handling */
+async function apiFetch(path, opts = {}) {
+  const url = API_BASE.replace(/\/+$/,'') + path;
+  try {
+    const res = await fetch(url, opts);
+    // handle 405 specifically
+    if (res.status === 405) {
+      const txt = await res.text().catch(()=>"Method Not Allowed");
+      throw { type: "method_not_allowed", status: 405, message: txt || "Method Not Allowed" };
+    }
+    // for non-json bodies, attempt json then fallback
+    let data;
+    const ct = res.headers.get("content-type") || "";
+    if (ct.includes("application/json")) data = await res.json();
+    else data = await res.text().catch(()=>null);
+
+    if (!res.ok) {
+      // normalize error
+      const err = (data && data.error) ? data.error : (data && data.message) ? data.message : (typeof data === "string" ? data : "Erro");
+      throw { status: res.status, message: err, raw: data };
+    }
+    return data;
+  } catch (e) {
+    if (e.type === "method_not_allowed") throw e;
+    // network or other
+    throw { status: e.status || 0, message: e.message || e || "Erro de conexão", raw: e };
+  }
+}
+
+/* ====== UI Init ====== */
+function initUI() {
+  $("apiBase").value = API_BASE;
+  updateJwtUI();
+  attachHandlers();
+  loadProducts();
+  updateCartCountFromLocal();
+}
+
+/* ====== Handlers ====== */
+function attachHandlers(){
+  $("btnSaveBase").addEventListener("click", () => {
+    API_BASE = $("apiBase").value.trim() || API_BASE;
+    localStorage.setItem(API_BASE_KEY, API_BASE);
+    showToast("API base salva", "ok");
+    $("pingStatus").innerText = "Base salva: " + API_BASE;
+  });
+
+  $("btnPing").addEventListener("click", async ()=>{
+    $("pingStatus").innerText = "Pingando...";
+    try {
+      const res = await apiFetch("/", { method: "GET" });
+      $("pingStatus").innerText = JSON.stringify(res);
+      showToast("API respondeu");
+    } catch (e) {
+      if (e.type === "method_not_allowed") {
+        $("pingStatus").innerText = "Method Not Allowed ao acessar /";
+        showToast("Erro: Method Not Allowed", "error");
+      } else {
+        $("pingStatus").innerText = "Erro: " + (e.message || "sem resposta");
+        showToast("Erro ao acessar API", "error");
+      }
+    }
+  });
+
+  $("btnAuthApp").addEventListener("click", validateClient);
+  $("btnRegister").addEventListener("click", doRegister);
+  $("btnFillDemo").addEventListener("click", () => {
+    $("regUser").value = "joao.demo";
+    $("regEmail").value = "joao@demo.com";
+    $("regPass").value = "senha123";
+  });
+  $("btnLogin").addEventListener("click", doLogin);
+  $("btnLogout").addEventListener("click", handleLogout);
+  $("btnReloadProducts").addEventListener("click", loadProducts);
+  $("btnOpenCart").addEventListener("click", openCartModal);
+  $("btnCloseModal").addEventListener("click", closeCartModal);
+  $("btnCheckout").addEventListener("click", placeOrder);
+  $("btnCopyJwt").addEventListener("click", ()=>{
+    if (JWT) { navigator.clipboard.writeText(JWT).then(()=>showToast("JWT copiado")) }
+    else showToast("Sem JWT", "error");
+  });
+  $("btnShowJwt").addEventListener("click", ()=>{
+    alert(JWT || "Sem JWT");
+  });
+}
+
+/* ====== Client auth ====== */
+async function validateClient(){
+  const clientID = $("clientID").value.trim();
+  const clientSecret = $("clientSecret").value.trim();
+  if (!clientID || !clientSecret) { showToast("Preencha clientID e secret", "error"); return; }
+
+  try {
+    const data = await apiFetch("/auth", {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({ clientID, clientSecret })
+    });
+    CLIENT_ID = clientID;
+    $("authMsg").innerText = "Aplicação validada ✅: " + (data.client || "OK");
+    $("authMsg").className = "status ok";
+    showToast("App validado", "ok");
+  } catch (e) {
+    if (e.type === "method_not_allowed") {
+      $("authMsg").innerText = "Method Not Allowed (esperado POST /auth)";
+      $("authMsg").className = "status danger";
+      showToast("Method Not Allowed em /auth", "error");
+    } else {
+      $("authMsg").innerText = "Erro: " + e.message;
+      $("authMsg").className = "status danger";
+      showToast("Erro ao validar client", "error");
+    }
+  }
+}
+
+/* ====== Register ====== */
+async function doRegister(){
+  const username = $("regUser").value.trim();
+  const email = $("regEmail").value.trim();
+  const password = $("regPass").value;
+  if (!username || !email || !password) { showToast("Preencha todos os campos", "error"); return; }
+
+  try {
+    const data = await apiFetch("/register", {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({ username, email, password })
+    });
+    $("regMsg").innerText = "Conta criada — faça login";
+    $("regMsg").className = "status ok";
+    showToast("Conta criada", "ok");
+    $("loginUser").value = username;
+  } catch (e) {
+    $("regMsg").innerText = "Erro: " + e.message;
+    $("regMsg").className = "status danger";
+    showToast("Erro no registro", "error");
+  }
+}
+
+/* ====== Login ====== */
+async function doLogin(){
+  if (!CLIENT_ID) { showToast("Valide a app antes (clientID)", "error"); return; }
+  const username = $("loginUser").value.trim();
+  const password = $("loginPass").value;
+  if (!username || !password) { showToast("Usuário e senha obrigatórios", "error"); return; }
+
+  try {
+    const data = await apiFetch("/login", {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({ clientID: CLIENT_ID, username, password })
+    });
+    JWT = data.token;
+    localStorage.setItem(STORAGE_KEY, JWT);
+    updateJwtUI();
+    showToast("Login OK", "ok");
+    loadCart();
+  } catch (e) {
+    if (e.type === "method_not_allowed") {
+      $("loginMsg").innerText = "Method Not Allowed (esperado POST /login)";
+      $("loginMsg").className = "status danger";
+    } else {
+      $("loginMsg").innerText = "Erro: " + e.message;
+      $("loginMsg").className = "status danger";
+    }
+    showToast("Erro no login", "error");
+  }
+}
+
+/* ====== Logout ====== */
+function handleLogout(){
+  JWT = null; CLIENT_ID = null;
+  localStorage.removeItem(STORAGE_KEY);
+  updateJwtUI();
+  showToast("Sessão removida");
+}
+
+/* ====== Products ====== */
+async function loadProducts(){
+  const grid = $("productGrid");
+  grid.innerHTML = "<div class='muted' style='padding:18px'>Carregando produtos…</div>";
+  try {
+    const data = await apiFetch("/products", { method: "GET" });
+    const prods = Array.isArray(data) ? data : (data.products || []);
+    grid.innerHTML = "";
+    if (!prods.length) grid.innerHTML = "<div class='muted' style='padding:18px'>Nenhum produto.</div>";
+    prods.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "product";
+      card.innerHTML = `
+        <img src="${p.img || p.image || 'https://via.placeholder.com/400x300?text=Produto'}" alt="${p.name}">
+        <h3>${p.name}</h3>
+        <div class="row"><div class="price">R$ ${Number(p.price).toFixed(2)}</div></div>
+        <div class="spaced" style="margin-top:8px">
+          <button class="addBtn">Adicionar</button>
+          <button class="small viewBtn">Detalhes</button>
+        </div>
+      `;
+      card.querySelector(".addBtn").addEventListener("click", ()=> addToCart(p.id));
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    if (e.type === "method_not_allowed") {
+      grid.innerHTML = `<div class="danger">Method Not Allowed em /products — verifique se seu servidor aceita GET.</div>`;
+    } else {
+      grid.innerHTML = `<div class="danger">Erro: ${e.message}</div>`;
+    }
+    showToast("Erro ao carregar produtos", "error");
+  }
+}
+
+/* ====== Cart ====== */
+async function addToCart(product_id, qty=1){
+  if (!JWT) { showToast("Faça login para adicionar", "error"); return; }
+  try {
+    const data = await apiFetch("/cart", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ product_id, qty })
+    });
+    showToast("Adicionado ao carrinho", "ok");
+    updateCartCountFromCart(data.cart || []);
+  } catch (e) {
+    if (e.type === "method_not_allowed") showToast("Method Not Allowed em /cart (POST)", "error");
+    else showToast("Erro ao adicionar", "error");
+  }
+}
+
+async function loadCart(){
+  if (!JWT) { updateCartCountFromCart([]); return; }
+  try {
+    const data = await apiFetch("/cart", {
+      method: "GET",
+      headers: authHeaders()
+    });
+    renderCart(data.cart || []);
+    updateCartCountFromCart(data.cart || []);
+  } catch (e) {
+    showToast("Erro ao buscar carrinho", "error");
+  }
+}
+
+function renderCart(cart){
+  const list = $("cart-list");
+  list.innerHTML = "";
+  if (!cart || cart.length === 0) { list.innerHTML = "<p class='muted'>Nenhum item no carrinho.</p>"; return; }
+  cart.forEach(it => {
+    const el = document.createElement("div");
+    el.className = "row";
+    el.style.justifyContent = "space-between";
+    el.style.padding = "8px 0";
+    el.innerHTML = `<div>${it.product_id} — q: ${it.qty}</div>
+      <div><button class="linklike" data-id="${it.product_id}" data-op="-">-</button>
+      <button class="linklike" data-id="${it.product_id}" data-op="+">+</button></div>`;
+    el.querySelectorAll("button").forEach(b=>{
+      b.addEventListener("click", ()=> changeQty(Number(b.dataset.id), b.dataset.op === "+" ? 1 : -1));
+    });
+    list.appendChild(el);
+  });
+}
+
+async function changeQty(product_id, delta){
+  try {
+    // fetch current
+    const getRes = await apiFetch("/cart", { method: "GET", headers: authHeaders() });
+    const cart = getRes.cart || [];
+    const item = cart.find(i=>i.product_id === product_id);
+    if (!item && delta > 0) cart.push({ product_id, qty: delta });
+    else if (item) item.qty = Math.max(0, item.qty + delta);
+    const items = cart.filter(i=>i.qty>0);
+    const res = await apiFetch("/cart", { method: "PUT", headers: authHeaders(), body: JSON.stringify({ items }) });
+    renderCart(res.cart || []);
+    updateCartCountFromCart(res.cart || []);
+    showToast("Carrinho atualizado", "ok");
+  } catch (e) {
+    showToast("Erro ao atualizar quantidade", "error");
+  }
+}
+
+async function clearCart(){
+  try {
+    const res = await apiFetch("/cart", { method: "DELETE", headers: authHeaders() });
+    renderCart([]);
+    updateCartCountFromCart([]);
+    showToast("Carrinho limpo", "ok");
+  } catch (e) {
+    showToast("Erro ao limpar", "error");
+  }
+}
+
+/* ====== Checkout ====== */
+async function placeOrder(){
+  if (!JWT) { showToast("Faça login antes de finalizar", "error"); return; }
+  try {
+    const res = await apiFetch("/checkout", { method: "POST", headers: authHeaders() });
+    showToast("Pedido criado — ID: " + (res.order && res.order.id ? res.order.id : ""), "ok");
+    renderCart([]);
+    updateCartCountFromCart([]);
+    closeCartModal();
+  } catch (e) {
+    if (e.type === "method_not_allowed") showToast("Method Not Allowed em /checkout", "error");
+    else showToast("Erro no checkout", "error");
+  }
+}
+
+/* ====== Modal + Cart UI utils ====== */
+function openCartModal(){ $("modal").classList.add("active"); loadCart(); }
+function closeCartModal(){ $("modal").classList.remove("active"); }
+
+function updateCartCountFromCart(cart){
+  const count = (cart || []).reduce((s,i)=>s+(i.qty||0),0);
+  $("cart-count").innerText = count;
+  localStorage.setItem("demo_cart_count", String(count));
+}
+function updateCartCountFromLocal(){
+  const c = Number(localStorage.getItem("demo_cart_count")||0);
+  $("cart-count").innerText = c;
+}
+
+/* ====== JWT UI ====== */
+function updateJwtUI(){
+  $("jwtShort").innerText = JWT ? (JWT.length>60 ? JWT.slice(0,50)+"…":JWT) : "—";
+  $("loginMsg").innerText = JWT ? "Autenticado" : "Não autenticado";
+}
+
+/* ====== Init ====== */
+document.addEventListener("DOMContentLoaded", initUI);
+</script>
 </body>
 </html>
